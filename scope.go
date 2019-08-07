@@ -1211,6 +1211,7 @@ func (scope *Scope) createTable() *Scope {
 	scope.Raw(fmt.Sprintf("CREATE TABLE %v (%v %v)%s", scope.QuotedTableName(), strings.Join(tags, ","), primaryKeyStr, scope.getTableOptions())).Exec()
 
 	scope.autoIndex()
+	scope.autoComment()
 	return scope
 }
 
@@ -1293,8 +1294,33 @@ func (scope *Scope) autoMigrate() *Scope {
 			scope.createJoinTable(field)
 		}
 		scope.autoIndex()
+		scope.autoComment()
 	}
 	return scope
+}
+
+func (scope *Scope) autoComment() {
+	var postgres postgres
+	if scope.Dialect().GetName() != postgres.GetName() {
+		return
+	}
+
+	var comments []string
+	for _, field := range scope.GetStructFields() {
+		comment, ok := field.TagSettingsGet("COMMENT")
+		if !ok {
+			continue
+		}
+
+		sql := fmt.Sprintf("COMMENT ON COLUMN %s.%s IS %s", scope.TableName(), field.DBName, comment)
+		comments = append(comments, sql)
+	}
+
+	if 0 >= len(comments) {
+		return
+	}
+
+	scope.Raw(strings.Join(comments, ";") + ";").Exec();
 }
 
 func (scope *Scope) autoIndex() *Scope {
@@ -1341,6 +1367,8 @@ func (scope *Scope) autoIndex() *Scope {
 
 	return scope
 }
+
+
 
 func (scope *Scope) getColumnAsArray(columns []string, values ...interface{}) (results [][]interface{}) {
 	resultMap := make(map[string][]interface{})

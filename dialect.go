@@ -129,7 +129,8 @@ var ParseFieldStructForDialect = func(field *StructField, dialect Dialect) (fiel
 		additionalType = additionalType + " DEFAULT " + value
 	}
 
-	if value, ok := field.TagSettingsGet("COMMENT"); ok {
+	var postgres postgres
+	if value, ok := field.TagSettingsGet("COMMENT"); ok && dialect.GetName() != postgres.GetName() {
 		additionalType = additionalType + " COMMENT " + value
 	}
 

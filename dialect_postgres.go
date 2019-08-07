@@ -60,7 +60,11 @@ func (s *postgres) DataTypeOf(field *StructField) string {
 			}
 		case reflect.Struct:
 			if _, ok := dataValue.Interface().(time.Time); ok {
-				sqlType = "timestamp with time zone"
+				if _, ok := field.TagSettingsGet("WITHOUT_TIMEZONE"); ok {
+					sqlType = "timestamp without time zone"
+				} else {
+					sqlType = "timestamp with time zone"
+				}
 			}
 		case reflect.Map:
 			if dataValue.Type().Name() == "Hstore" {
